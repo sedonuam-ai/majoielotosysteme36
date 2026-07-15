@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0e1a1f">
+<meta name="description" content="AZARAKOR LOTO SYSTÈME — générateur de grilles par groupe de chiffre et suivi statistique des tirages, utilisable hors connexion.">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AZARAKOR">
+
+<title>AZARAKOR LOTO SYSTÈME</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0e1a1f;
+    --panel: #142831;
+    --ink: #eaf2ef;
+    --muted: #7fa89c;
+    --line: #24404a;
+    --accent: #e8b04b;
+  }
+  * { box-sizing: border-box; }
+  html {
+    background: var(--bg);
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 50% 0%, #16323b 0%, var(--bg) 55%) fixed;
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    padding: 40px 20px 60px;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    text-align: center;
+    margin: 0 0 6px;
+    letter-spacing: 0.03em;
+    color: var(--accent);
+  }
+  p.sub {
+    text-align: center;
+    color: var(--muted);
+    margin: 0 0 30px;
+    font-size: 0.95rem;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .buttons {
+    max-width: 900px;
+    margin: 0 auto 30px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+  .digit-wrap {
+    position: relative;
+  }
+  .digit-btn {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  .digit-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+  }
+  .digit-btn.active {
+    background: var(--accent);
+    color: #17242a;
+    border-color: var(--accent);
+  }
+  .count-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #1c343d;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.62rem;
+    font-weight: 600;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    pointer-events: none;
+  }
+  .draw-section {
+    max-width: 900px;
+    margin: 0 auto 30px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .draw-title {
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+  }
+  .draw-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .draw-box {
+    width: 52px;
+    height: 52px;
+    text-align: center;
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    background: #0e1a1f;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink);
+    outline: none;
+  }
+  .draw-box:focus {
+    border-color: var(--accent);
+  }
+  .verify-btn {
+    background: var(--accent);
+    border: none;
+    color: #17242a;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .verify-btn:hover {
+    filter: brightness(1.08);
+  }
+  .verify-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .paires-table {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+  .grid-card.match {
+    border-color: var(--accent);
+  }
+  .ball.hit {
+    background: var(--accent);
+    color: #17242a;
+    border-color: var(--accent);
+  }
+  .result-tag {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .result-tag.win {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .toolbar {
+    max-width: 900px;
+    margin: 0 auto 20px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+  .regen-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .regen-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .regen-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  #output {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .group-title {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 16px;
+  }
+  .grid-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .grid-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .grid-index {
+    color: var(--muted);
+    font-size: 0.7rem;
+    width: 20px;
+    flex-shrink: 0;
+  }
+  .balls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .ball {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #1c343d;
+    border: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 600;
+  }
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 20px;
+    font-size: 0.9rem;
+  }
+  .stats-section {
+    max-width: 900px;
+    margin: 0 auto 30px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .stats-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .stats-tab {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+  }
+  .stats-tab:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .stats-tab.active {
+    background: var(--accent);
+    color: #17242a;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .stats-tab.danger:hover {
+    border-color: #e05a4b;
+    color: #e05a4b;
+  }
+  .stats-meta {
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-bottom: 14px;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+    gap: 6px;
+  }
+  .stat-ball {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: #0e1a1f;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 2px;
+  }
+  .stat-ball .num {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .stat-ball .val {
+    font-size: 0.62rem;
+    color: var(--muted);
+  }
+  .stat-ball.hot { border-color: var(--accent); }
+  .stat-ball.hot .val { color: var(--accent); }
+  .stat-ball.cold { border-color: #4a8fd1; }
+  .stat-ball.cold .val { color: #7fb3e0; }
+  .rank-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .rank-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: #0e1a1f;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    min-width: 54px;
+  }
+  .rank-item .num {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  .rank-item .val {
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #0e1a1f;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+  .history-item .h-idx {
+    color: var(--muted);
+    width: 26px;
+    flex-shrink: 0;
+  }
+  .history-item .h-balls {
+    display: flex;
+    gap: 5px;
+  }
+  .predict-note {
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-top: 12px;
+    line-height: 1.5;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+  }
+    max-width: 900px;
+    margin: 40px auto 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+  }
+</style>
+</head>
+<body>
+
+  <h1>AZARAKOR LOTO SYSTÈME</h1>
+  <p class="sub">Choisis un chiffre : ses 36 grilles de 5 numéros sont générées à partir des numéros de ce groupe uniquement (1 à 90).</p>
+
+  <div class="buttons" id="buttons"></div>
+
+  <div class="toolbar">
+    <button class="regen-btn" id="regenBtn" disabled>↻ Régénérer ce groupe</button>
+  </div>
+
+  <div class="draw-section">
+    <div class="draw-title">Résultat du tirage officiel</div>
+    <div class="draw-row">
+      <input class="draw-box" maxlength="2" inputmode="numeric" data-idx="0">
+      <input class="draw-box" maxlength="2" inputmode="numeric" data-idx="1">
+      <input class="draw-box" maxlength="2" inputmode="numeric" data-idx="2">
+      <input class="draw-box" maxlength="2" inputmode="numeric" data-idx="3">
+      <input class="draw-box" maxlength="2" inputmode="numeric" data-idx="4">
+      <button class="verify-btn" id="verifyBtn" disabled>Vérifier les gains</button>
+      <button class="regen-btn" id="addHistoryBtn" disabled>+ Ajouter à l'historique</button>
+    </div>
+    <div class="paires-table">
+      Barème&nbsp;: 5 bons numéros = 10 paires · 4 bons = 6 paires · 3 bons = 3 paires · 2 bons = 1 paire · 1 bon = 0 paire
+    </div>
+  </div>
+
+  <div class="stats-section">
+    <div class="stats-tabs">
+      <button class="stats-tab" data-tab="ecart">Écart</button>
+      <button class="stats-tab" data-tab="frequence">Fréquence</button>
+      <button class="stats-tab" data-tab="chaud">Chaud</button>
+      <button class="stats-tab" data-tab="froid">Froid</button>
+      <button class="stats-tab" data-tab="prediction">Prédiction</button>
+      <button class="stats-tab" data-tab="historique">Historiques</button>
+      <button class="stats-tab danger" id="resetBtn">Réinitialiser</button>
+    </div>
+    <div id="statsOutput">
+      <div class="empty" style="padding:20px;">
+        Ajoute des tirages à l'historique pour débloquer les statistiques (écart, fréquence, chaud/froid, prédiction).
+      </div>
+    </div>
+  </div>
+
+  <div id="output">
+    <div class="empty">Sélectionne un chiffre ci-dessus pour générer ses 36 grilles.</div>
+  </div>
+
+  <footer>
+    Rappel&nbsp;: ce classement regroupe les numéros de 1 à 90 partageant un chiffre commun
+    (en unité ou en dizaine). Les grilles générées sont un exercice combinatoire équilibré,
+    sans aucune valeur prédictive — chaque numéro conserve la même probabilité de sortie à
+    chaque tirage, quel que soit le groupe ou la grille choisis.
+  </footer>
+
+<script>
+  const groups = {
+    0: [1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90],
+    1: [1,10,11,12,13,14,15,16,17,18,19,21,31,41,51,61,71,81],
+    2: [2,12,20,21,22,23,24,25,26,27,28,29,32,42,52,62,72,82],
+    3: [3,13,23,30,31,32,33,34,35,36,37,38,39,43,53,63,73,83],
+    4: [4,14,24,34,40,41,42,43,44,45,46,47,48,49,54,64,74,84],
+    5: [5,15,25,35,45,50,51,52,53,54,55,56,57,58,59,65,75,85],
+    6: [6,16,26,36,46,56,60,61,62,63,64,65,66,67,68,69,76,86],
+    7: [7,17,27,37,47,57,67,70,71,72,73,74,75,76,77,78,79,87],
+    8: [8,18,28,38,48,58,68,78,80,81,82,83,84,85,86,87,88,89],
+    9: [9,19,29,39,49,59,69,79,89,90]
+  };
+
+  let activeDigit = null;
+  let currentGrids = [];
+  let historique = []; // liste de tirages : [[n1..n5], [n1..n5], ...]
+  let activeTab = null;
+  const loggedSignatures = new Set(); // évite de compter deux fois le même tirage officiel
+  const counts = {};
+  Object.keys(groups).forEach(d => counts[d] = 0);
+
+  const allNumbers = Array.from({ length: 90 }, (_, i) => i + 1);
+
+  function computeFrequence() {
+    const freq = {};
+    allNumbers.forEach(n => freq[n] = 0);
+    historique.forEach(draw => draw.forEach(n => { if (freq[n] !== undefined) freq[n]++; }));
+    return freq;
+  }
+
+  function computeEcart() {
+    // écart = nombre de tirages depuis la dernière apparition (0 = sorti au dernier tirage)
+    const ecart = {};
+    allNumbers.forEach(n => ecart[n] = null);
+    // historique[0] = tirage le plus récent (on ajoute en tête)
+    allNumbers.forEach(n => {
+      let found = -1;
+      for (let i = 0; i < historique.length; i++) {
+        if (historique[i].includes(n)) { found = i; break; }
+      }
+      ecart[n] = found === -1 ? historique.length : found;
+    });
+    return ecart;
+  }
+
+  // Barème des paires selon le nombre de bons numéros
+  function pairesForMatches(n) {
+    const table = { 0: 0, 1: 0, 2: 1, 3: 3, 4: 6, 5: 10 };
+    return table[n] ?? 0;
+  }
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function generateBalancedGrids(pool, nGrids = 36, gridSize = 5) {
+    const usage = {};
+    pool.forEach(n => usage[n] = 0);
+    const seen = new Set();
+    const grids = [];
+    let attempts = 0;
+    const maxAttempts = nGrids * 400;
+
+    while (grids.length < nGrids && attempts < maxAttempts) {
+      attempts++;
+      const sortedPool = [...pool].sort((a, b) => {
+        if (usage[a] !== usage[b]) return usage[a] - usage[b];
+        return Math.random() - 0.5;
+      });
+      const windowSize = Math.min(pool.length, gridSize + 4);
+      const window = sortedPool.slice(0, windowSize);
+      const shuffled = shuffle(window);
+      const candidate = shuffled.slice(0, Math.min(gridSize, shuffled.length)).sort((a, b) => a - b);
+      if (candidate.length < gridSize) continue;
+      const key = candidate.join(',');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      grids.push(candidate);
+      candidate.forEach(n => usage[n]++);
+    }
+    return grids;
+  }
+
+  function renderGrids(digit) {
+    const pool = groups[digit];
+    const grids = generateBalancedGrids(pool);
+    currentGrids = grids;
+    counts[digit]++;
+    updateBadge(digit);
+
+    const output = document.getElementById('output');
+    output.innerHTML = `
+      <div class="group-title">Groupe ${digit} — ${pool.length} numéros disponibles — 36 grilles</div>
+      <div class="grid-list" id="gridList">
+        ${grids.map((g, i) => `
+          <div class="grid-card" data-idx="${i}">
+            <span class="grid-index">${String(i + 1).padStart(2, '0')}</span>
+            <div class="balls">
+              ${g.map(n => `<div class="ball" data-num="${n}">${String(n).padStart(2, '0')}</div>`).join('')}
+            </div>
+            <span class="result-tag" data-tag="${i}"></span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function updateBadge(digit) {
+    const badge = document.querySelector(`.digit-wrap[data-digit="${digit}"] .count-badge`);
+    if (badge) badge.textContent = counts[digit];
+  }
+
+  function getDrawNumbers() {
+    const boxes = [...document.querySelectorAll('.draw-box')];
+    const values = boxes.map(b => b.value.trim()).filter(v => v !== '');
+    if (values.length < 5) return null;
+    return values.map(v => parseInt(v, 10));
+  }
+
+  function drawSignature(draw) {
+    return [...draw].sort((a, b) => a - b).join(',');
+  }
+
+  function logDrawIfNew(draw) {
+    const sig = drawSignature(draw);
+    if (loggedSignatures.has(sig)) return false; // déjà compté, on ne double-compte pas
+    loggedSignatures.add(sig);
+    historique.unshift(draw); // le plus récent en tête
+    if (activeTab) renderStatsTab(activeTab);
+    return true;
+  }
+
+  function verifyGains() {
+    const draw = getDrawNumbers();
+    if (!draw || currentGrids.length === 0) return;
+
+    // Le compteur mémorise ce tirage officiel dès qu'il est vérifié
+    logDrawIfNew(draw);
+
+    const gridListEl = document.getElementById('gridList');
+    if (!gridListEl) return;
+
+    currentGrids.forEach((grid, i) => {
+      const matches = grid.filter(n => draw.includes(n));
+      const nMatches = matches.length;
+      const paires = pairesForMatches(nMatches);
+
+      const card = gridListEl.querySelector(`.grid-card[data-idx="${i}"]`);
+      card.classList.toggle('match', nMatches >= 2);
+
+      card.querySelectorAll('.ball').forEach(ballEl => {
+        const num = parseInt(ballEl.dataset.num, 10);
+        ballEl.classList.toggle('hit', draw.includes(num));
+      });
+
+      const tag = card.querySelector('.result-tag');
+      tag.textContent = `${nMatches} bon${nMatches > 1 ? 's' : ''} — ${paires} paire${paires > 1 ? 's' : ''}`;
+      tag.classList.toggle('win', nMatches >= 2);
+    });
+  }
+
+  const buttonsDiv = document.getElementById('buttons');
+  const regenBtn = document.getElementById('regenBtn');
+  const verifyBtn = document.getElementById('verifyBtn');
+  const addHistoryBtn = document.getElementById('addHistoryBtn');
+
+  Object.keys(groups).forEach(digit => {
+    const wrap = document.createElement('div');
+    wrap.className = 'digit-wrap';
+    wrap.dataset.digit = digit;
+
+    const btn = document.createElement('button');
+    btn.className = 'digit-btn';
+    btn.textContent = digit;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.digit-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeDigit = digit;
+      regenBtn.disabled = false;
+      renderGrids(digit);
+      updateVerifyState();
+    });
+
+    const badge = document.createElement('span');
+    badge.className = 'count-badge';
+    badge.textContent = '0';
+
+    wrap.appendChild(btn);
+    wrap.appendChild(badge);
+    buttonsDiv.appendChild(wrap);
+  });
+
+  regenBtn.addEventListener('click', () => {
+    if (activeDigit !== null) {
+      renderGrids(activeDigit);
+      updateVerifyState();
+    }
+  });
+
+  // Saisie du tirage officiel : 5 cases à 2 chiffres, avance automatique
+  const drawBoxes = [...document.querySelectorAll('.draw-box')];
+  drawBoxes.forEach((box, idx) => {
+    box.addEventListener('input', () => {
+      box.value = box.value.replace(/\D/g, '').slice(0, 2);
+      if (box.value.length === 2 && idx < drawBoxes.length - 1) {
+        drawBoxes[idx + 1].focus();
+        drawBoxes[idx + 1].select();
+      }
+      updateVerifyState();
+    });
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && box.value === '' && idx > 0) {
+        drawBoxes[idx - 1].focus();
+        drawBoxes[idx - 1].select();
+      }
+    });
+    box.addEventListener('focus', () => box.select());
+  });
+
+  function updateVerifyState() {
+    const draw = getDrawNumbers();
+    verifyBtn.disabled = !(draw && currentGrids.length > 0);
+    addHistoryBtn.disabled = !draw;
+  }
+
+  verifyBtn.addEventListener('click', verifyGains);
+
+  // ---------- Historique & Statistiques ----------
+
+  addHistoryBtn.addEventListener('click', () => {
+    const draw = getDrawNumbers();
+    if (!draw) return;
+    logDrawIfNew(draw);
+    drawBoxes.forEach(b => b.value = '');
+    drawBoxes[0].focus();
+    updateVerifyState();
+  });
+
+  const statsOutput = document.getElementById('statsOutput');
+  const statsTabs = [...document.querySelectorAll('.stats-tab[data-tab]')];
+  const resetBtn = document.getElementById('resetBtn');
+
+  function renderStatsTab(tab) {
+    activeTab = tab;
+    statsTabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+
+    if (historique.length === 0) {
+      statsOutput.innerHTML = `<div class="empty" style="padding:20px;">
+        Ajoute au moins un tirage à l'historique pour voir cette statistique.
+      </div>`;
+      return;
+    }
+
+    const freq = computeFrequence();
+    const ecart = computeEcart();
+
+    if (tab === 'frequence') {
+      statsOutput.innerHTML = `
+        <div class="stats-meta">${historique.length} tirage${historique.length > 1 ? 's' : ''} enregistré${historique.length > 1 ? 's' : ''} — nombre de sorties par numéro (1 à 90)</div>
+        <div class="stats-grid">
+          ${allNumbers.map(n => `
+            <div class="stat-ball ${freq[n] > 0 ? 'hot' : ''}">
+              <span class="num">${String(n).padStart(2,'0')}</span>
+              <span class="val">${freq[n]}×</span>
+            </div>
+          `).join('')}
+        </div>`;
+    }
+
+    else if (tab === 'ecart') {
+      statsOutput.innerHTML = `
+        <div class="stats-meta">Nombre de tirages depuis la dernière sortie de chaque numéro (0 = sorti au dernier tirage)</div>
+        <div class="stats-grid">
+          ${allNumbers.map(n => `
+            <div class="stat-ball ${ecart[n] === 0 ? 'hot' : ecart[n] >= historique.length ? 'cold' : ''}">
+              <span class="num">${String(n).padStart(2,'0')}</span>
+              <span class="val">${ecart[n]}</span>
+            </div>
+          `).join('')}
+        </div>`;
+    }
+
+    else if (tab === 'chaud') {
+      const ranked = [...allNumbers]
+        .filter(n => freq[n] > 0)
+        .sort((a, b) => freq[b] - freq[a] || a - b)
+        .slice(0, 10);
+      statsOutput.innerHTML = `
+        <div class="stats-meta">Les 10 numéros les plus sortis dans l'historique enregistré</div>
+        <div class="rank-list">
+          ${ranked.length ? ranked.map(n => `
+            <div class="rank-item">
+              <span class="num">${String(n).padStart(2,'0')}</span>
+              <span class="val">${freq[n]}×</span>
+            </div>
+          `).join('') : '<span class="stats-meta">Aucune donnée pour l\'instant.</span>'}
+        </div>`;
+    }
+
+    else if (tab === 'froid') {
+      const ranked = [...allNumbers]
+        .sort((a, b) => (ecart[b] - ecart[a]) || (freq[a] - freq[b]) || a - b)
+        .slice(0, 10);
+      statsOutput.innerHTML = `
+        <div class="stats-meta">Les 10 numéros les moins sortis / au plus grand écart</div>
+        <div class="rank-list">
+          ${ranked.map(n => `
+            <div class="rank-item">
+              <span class="num">${String(n).padStart(2,'0')}</span>
+              <span class="val">écart ${ecart[n]} · ${freq[n]}×</span>
+            </div>
+          `).join('')}
+        </div>`;
+    }
+
+    else if (tab === 'prediction') {
+      // Score purement arithmétique combinant fréquence et écart — aucune valeur prédictive réelle
+      const score = {};
+      allNumbers.forEach(n => score[n] = freq[n] + ecart[n] * 0.1);
+      const ranked = [...allNumbers].sort((a, b) => score[b] - score[a] || a - b).slice(0, 5);
+      statsOutput.innerHTML = `
+        <div class="stats-meta">Suggestion calculée à partir de la fréquence et de l'écart</div>
+        <div class="rank-list">
+          ${ranked.map(n => `
+            <div class="rank-item">
+              <span class="num">${String(n).padStart(2,'0')}</span>
+              <span class="val">${freq[n]}× · écart ${ecart[n]}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="predict-note">
+          Cette "prédiction" est un simple calcul arithmétique sur l'historique saisi — elle n'a aucune
+          valeur prédictive réelle. Le tirage suivant reste entièrement indépendant des tirages précédents :
+          chaque numéro garde exactement la même probabilité de sortie, quel que soit son score ici.
+        </div>`;
+    }
+
+    else if (tab === 'historique') {
+      statsOutput.innerHTML = `
+        <div class="stats-meta">${historique.length} tirage${historique.length > 1 ? 's' : ''} enregistré${historique.length > 1 ? 's' : ''} (le plus récent en premier)</div>
+        <div class="history-list">
+          ${historique.map((draw, i) => `
+            <div class="history-item">
+              <span class="h-idx">#${historique.length - i}</span>
+              <div class="h-balls">
+                ${draw.map(n => `<div class="ball">${String(n).padStart(2,'0')}</div>`).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+    }
+  }
+
+  statsTabs.forEach(tab => {
+    tab.addEventListener('click', () => renderStatsTab(tab.dataset.tab));
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (!confirm('Réinitialiser tout l\'historique et les statistiques ? Cette action est irréversible.')) return;
+    historique = [];
+    loggedSignatures.clear();
+    activeTab = null;
+    statsTabs.forEach(t => t.classList.remove('active'));
+    statsOutput.innerHTML = `<div class="empty" style="padding:20px;">
+      Ajoute des tirages à l'historique pour débloquer les statistiques (écart, fréquence, chaud/froid, prédiction).
+    </div>`;
+  });
+
+  // Mode hors connexion : enregistrement du service worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.warn('Service worker non enregistré :', err);
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
